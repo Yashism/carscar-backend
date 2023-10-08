@@ -330,7 +330,7 @@ def getreport(_id):
     )
 
     # Call pdf_gen
-    pdf_gen(_id)
+    # pdf_gen(_id)
 
     return {"data": {"AI Estimated Cost ": AI_estimated_cost,
                      "Parts to be replaced": parts_toBeReplaced,
