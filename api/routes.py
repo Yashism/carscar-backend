@@ -193,13 +193,9 @@ def get_damage_analysis(_id):
             {"_id": oid},
             {"$set": {"JSON": json_responses}}
         )
-        resp = make_response("Database update Successful")
-        resp.status_code = 200
-        return resp
+        return jsonify({'message': 'Damage analysis successful'}), 200
     except:
-        resp = make_response("Database update Unsuccessful")
-        resp.status_code = 400
-        return resp
+        return jsonify({'error': 'DB update unsuccessful'}), 400
 
 
 def parse_ai_response(response_data):
@@ -325,7 +321,7 @@ def getreport(_id):
         }
     )
 
-    return jsonify({"data":{"AI Estimated Cost ":AI_estimated_cost,
+    return {"data":{"AI Estimated Cost ":AI_estimated_cost,
                     "Parts to be replaced":parts_toBeReplaced,
                     "Scratches Cost":scratch_cost,
-                    "Replacement Price": replacement_price}})
+                    "Replacement Price": replacement_price}}
