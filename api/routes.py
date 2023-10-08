@@ -85,9 +85,9 @@ def add_car():
             # Redirect to the getreport endpoint
             get_report_response = getreport(result.inserted_id)
             print("Get Report back : ",get_report_response)
-            return jsonify(get_report_response)
+            return [jsonify(get_report_response)]
         else:
-            return jsonify(error="Failed to get report analysis.")
+            return [jsonify(error="Failed to get report analysis.")]
     else:
         return jsonify(error="Failed to store car details.")
 
