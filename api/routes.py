@@ -325,7 +325,7 @@ def getreport(_id):
         }
     )
 
-    return {"data":{"AI Estimated Cost ":AI_estimated_cost,
+    return jsonify({"data":{"AI Estimated Cost ":AI_estimated_cost,
                     "Parts to be replaced":parts_toBeReplaced,
                     "Scratches Cost":scratch_cost,
-                    "Replacement Price": replacement_price}}
+                    "Replacement Price": replacement_price}})
