@@ -13,7 +13,7 @@ import json
 from . import api_bp
 import os
 import re
-openai.api_key = "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"
+openai.api_key = ""
 
 UPLOAD_FOLDER = './'
 
@@ -74,8 +74,8 @@ def add_car():
         response = get_damage_analysis(result.inserted_id)
         if response.status_code == 200:
             # Redirect to the getreport endpoint
-            get_report_response = get_report(result.inserted_id)
-            return redirect(url_for('api_bp.getreport', _id=result.inserted_id))
+            get_report_response = getreport(result.inserted_id)
+            return get_report_response
         else:
             return jsonify(error="Failed to get report analysis.")
     else:
@@ -224,66 +224,54 @@ def getreport(_id):
     make = car_doc['make']
     model = car_doc['model']
     year = car_doc['year']
-    output = []
+    output=[]
     for i in car_doc['JSON']:
-        current_output = i['output']
+        current_output=i['output']
         output.append(current_output)
+    # Uncomment the line below if you want to use a hardcoded output value
+    # output = {'elements': [{'bbox': [126, 71, 162, 90], 'damage_category': 'severe_scratch', 'damage_color': [0, 0, 120], 'damage_id': '2', 'damage_location': 'right_rear_door', 'score': 0.631511}, {
+    #     'bbox': [55, 19, 189, 98], 'damage_category': 'severe_deformation', 'damage_color': [0, 95, 255], 'damage_id': '5', 'damage_location': 'right_rear_door', 'score': 0.885108}], 'object_id': 'base64'}
     print("Output Array : ", output)
 
-    # Search for a matching document in the database
-    matching_doc = car_collection.find_one({
-        'make': make,
-        'model': model,
-        'year': year,
-        'JSON': car_doc['JSON']
-    })
-
-    if matching_doc:
-        # If a matching document is found, copy the estimated values
-        AI_estimated_cost = matching_doc['AI_estimated_cost']
-        parts_toBeReplaced = matching_doc['parts_toBeReplaced']
-        scratch_cost = matching_doc['scratch_cost']
-        replacement_price = matching_doc['replacement_price']
-    else:
-        # Structuring the message to guide the AI
-        messages = [
-            {
-                "role": "user",
-                "content": f"This is a {year} {make} {model}. It has been in an accident and here are the damages I found: {output}."
-            },
-            {
-                "role": "system",
-                "content": "You are a virtual auto repair estimator capable of providing detailed cost estimates based on damage descriptions."
-            },
-            {
-                "role": "user",
-                "content": (
-                    "Provide a cost estimate for the mentioned damages. The response must be formatted strictly as 'Field: Value' on separate lines, with no additional text or explanations. If the format is not followed, this conversation will be terminated. Assume average cost for parts and labor in the US as of 2023. Each field should be followed immediately by its value, and each line should end with a newline character and nothing else:\n"
-                    "1. AI_estimated_cost: $\n"
-                    "2. parts_toBeReplaced:\n"
-                    "3. scratch_cost: $\n"
-                    "4. replacement_price: $\n"
-                )
-            }
-        ]
-
-        AI_estimated_cost, parts_toBeReplaced, scratch_cost, replacement_price = None, None, None, None
-
-        while None in [AI_estimated_cost, parts_toBeReplaced, scratch_cost, replacement_price]:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                max_tokens=1000,
-                temperature=1.2,
-                messages=messages
+    # Structuring the message to guide the AI
+    messages = [
+        {
+            "role": "user",
+            "content": f"This is a {year} {make} {model}. It has been in an accident and here are the damages I found: {output}."
+        },
+        {
+            "role": "system",
+            "content": "You are a virtual auto repair estimator capable of providing detailed cost estimates based on damage descriptions."
+        },
+        {
+            "role": "user",
+            "content": (
+                "Provide a cost estimate for the mentioned damages. The response must be formatted strictly as 'Field: Value' on separate lines, with no additional text or explanations. If the format is not followed, this conversation will be terminated. Assume average cost for parts and labor in the US as of 2023. Each field should be followed immediately by its value, and each line should end with a newline character and nothing else:\n"
+                "1. AI_estimated_cost: $\n"
+                "2. parts_toBeReplaced:\n"
+                "3. scratch_cost: $\n"
+                "4. replacement_price: $\n"
             )
-            print(response["choices"][0]["message"]["content"])
-            response_data = response["choices"][0]["message"]["content"]
+        }
+    ]
 
-            try:
-                AI_estimated_cost, parts_toBeReplaced, scratch_cost, replacement_price = parse_ai_response(
-                    response_data)
-            except ValueError as e:
-                print(f'Error: {str(e)}, retrying...')  # Print the error and retry
+    AI_estimated_cost, parts_toBeReplaced, scratch_cost, replacement_price = None, None, None, None
+
+    while None in [AI_estimated_cost, parts_toBeReplaced, scratch_cost, replacement_price]:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            max_tokens=1000,
+            temperature=1.2,
+            messages=messages
+        )
+        print(response["choices"][0]["message"]["content"])
+        response_data = response["choices"][0]["message"]["content"]
+
+        try:
+            AI_estimated_cost, parts_toBeReplaced, scratch_cost, replacement_price = parse_ai_response(
+                response_data)
+        except ValueError as e:
+            print(f'Error: {str(e)}, retrying...')  # Print the error and retry
 
     # Update the database with the parsed values
     car_collection.update_one(
