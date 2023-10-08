@@ -331,4 +331,31 @@ def getreport(_id):
     return {"data":{"AI Estimated Cost ":AI_estimated_cost,
                     "Parts to be replaced":parts_toBeReplaced,
                     "Scratches Cost":scratch_cost,
-                    "Replacement Price": replacement_price}}
+                    "Replacement Price": replacement_price,
+                    "make":make,
+                    "model":model,
+                    "year":year}}
+    
+    
+# @api_bp.route('/api/pdf_gen/<string:_id>')
+# def pdf_gen(_id):
+#     car_doc = car_collection.find_one({'_id': ObjectId(_id)})
+#     if car_doc is None:
+#         return jsonify({'error': 'Car not found'}), 404
+#     make = car_doc['make']
+#     model = car_doc['model']
+#     year = car_doc['year']
+#     AI_estimated_cost = car_doc['AI_estimated_cost']
+#     parts_toBeReplaced = car_doc['parts_toBeReplaced']
+#     scratch_cost = car_doc['scratch_cost']
+#     replacement_price = car_doc['replacement_price']
+#     da_cost = car_doc['da_cost']
+#     output=[]
+#     for i in car_doc['JSON']:
+#         current_output=i['output']
+#         output.append(current_output)
+#     print("Output Array : ", output)
+     
+     
+    
+    
