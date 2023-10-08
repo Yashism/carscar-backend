@@ -6,7 +6,7 @@ from auth import auth_bp
 from flask_cors import CORS
 
 
-def create_app():
+def create_app(*args, **kwargs):
     app = Flask(__name__)
     CORS(app, origins=["*", "https://sub.example.com"])
     # Register blueprints
