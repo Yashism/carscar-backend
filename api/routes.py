@@ -35,9 +35,10 @@ def add_car():
     print("Add Car Called")
     print("open ai key", os.environ.get('OPENAI_API_KEY'))
     report_id = request.form.get('report_id')
-    vin_number = request.form.get('vin_number')  # Get the VIN number from the form
-    print("VIN Number : ",vin_number)
-    
+    # Get the VIN number from the form
+    vin_number = request.form.get('vin_number')
+    print("VIN Number : ", vin_number)
+
     if vin_number:  # If VIN number is provided
         # Call your get_VIN_infoV2 function to get the vehicle info
         vehicle_info = get_VIN_infoV2(vin_number)
@@ -49,7 +50,7 @@ def add_car():
         make = request.form.get('make')
         model = request.form.get('model')
         year = request.form.get('year')
-    
+
     image_base64s = []
 
     for img in request.files.getlist('images'):
@@ -85,12 +86,12 @@ def add_car():
         # return redirect(url_for('api_bp.getreport', _id=result.inserted_id))
         status, response_content = get_damage_analysis(result.inserted_id)
 
-        print("status : ",status)
-        print("response content : ",type(response_content))
+        print("status : ", status)
+        print("response content : ", type(response_content))
         if response_content == 200:
             # Redirect to the getreport endpoint
             get_report_response = getreport(result.inserted_id)
-            print("Get Report back : ",get_report_response)
+            print("Get Report back : ", get_report_response)
             return jsonify(get_report_response)
         else:
             print("fucked in the data analysis")
@@ -136,9 +137,7 @@ def get_VIN_info(VIN):
         return jsonify({'error': f'Failed to retrieve data: {response.status_code}'}), 500
 
 
-
-
-@api_bp.route('/api/get_VIN_infoV2', methods=['GET','POST'])
+@api_bp.route('/api/get_VIN_infoV2', methods=['GET', 'POST'])
 def get_VIN_infoV2(vin_num):
     url = f'https://auto.dev/api/vin/{vin_num}?apikey={api_key}'
     headers = {
@@ -147,20 +146,22 @@ def get_VIN_infoV2(vin_num):
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         response_data = response.json()
-        # Assuming that the keys for make, model, and year are 'make', 'model', and 'year' in the JSON response
+
+        # Extracting required values from the response
+        year = response_data['years'][0]['year'] if 'years' in response_data and response_data['years'] else 'N/A'
+        make_name = response_data['make']['name'] if 'make' in response_data and 'name' in response_data['make'] else 'N/A'
+        model_name = response_data['model']['name'] if 'model' in response_data and 'name' in response_data['model'] else 'N/A'
+
         vehicle_info = {
-            'make': response_data.get('make', 'N/A'),
-            'model': response_data.get('model', 'N/A'),
-            'year': response_data.get('year', 'N/A')
+            'year': year,
+            'make': make_name,
+            'model': model_name
         }
-        print("Vehicle Info : ",vehicle_info)
+
+        print("Vehicle Info : ", vehicle_info)
         return vehicle_info
     else:
         return jsonify({'error': f'Failed to retrieve data: {response.status_code}'}), 500
-
-
-
-
 
 
 @api_bp.route('/api/getDamageAnalysis/<string:_id>')
@@ -266,9 +267,9 @@ def getreport(_id):
     make = car_doc['make']
     model = car_doc['model']
     year = car_doc['year']
-    output=[]
+    output = []
     for i in car_doc['JSON']:
-        current_output=i['output']
+        current_output = i['output']
         output.append(current_output)
     # Uncomment the line below if you want to use a hardcoded output value
     # output = {'elements': [{'bbox': [126, 71, 162, 90], 'damage_category': 'severe_scratch', 'damage_color': [0, 0, 120], 'damage_id': '2', 'damage_location': 'right_rear_door', 'score': 0.631511}, {
@@ -328,15 +329,18 @@ def getreport(_id):
         }
     )
 
-    return {"data":{"AI Estimated Cost ":AI_estimated_cost,
-                    "Parts to be replaced":parts_toBeReplaced,
-                    "Scratches Cost":scratch_cost,
-                    "Replacement Price": replacement_price,
-                    "make":make,
-                    "model":model,
-                    "year":year}}
-    
-    
+    # Call pdf_gen
+    pdf_gen(_id)
+
+    return {"data": {"AI Estimated Cost ": AI_estimated_cost,
+                     "Parts to be replaced": parts_toBeReplaced,
+                     "Scratches Cost": scratch_cost,
+                     "Replacement Price": replacement_price,
+                     "make": make,
+                     "model": model,
+                     "year": year}}
+
+
 # @api_bp.route('/api/pdf_gen/<string:_id>')
 # def pdf_gen(_id):
 #     car_doc = car_collection.find_one({'_id': ObjectId(_id)})
@@ -350,12 +354,16 @@ def getreport(_id):
 #     scratch_cost = car_doc['scratch_cost']
 #     replacement_price = car_doc['replacement_price']
 #     da_cost = car_doc['da_cost']
-#     output=[]
+#     output = []
 #     for i in car_doc['JSON']:
-#         current_output=i['output']
+#         current_output = i['output']
 #         output.append(current_output)
 #     print("Output Array : ", output)
-     
-     
-    
-    
+
+#     with open('./report/template.tex', 'r') as template_file:
+#         template = template_file.read()
+
+#     # Replace placeholders in the template with the extracted information and generated descriptions
+#     template = template.replace('Make', make)
+#     template = template.replace('Model', model)
+#     template = template.replace('Year', year)
