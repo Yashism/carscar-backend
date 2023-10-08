@@ -13,7 +13,7 @@ import json
 from . import api_bp
 import os
 import re
-openai.api_key = ""
+openai.api_key = os.environ.get('OPENAI_API_KEY')
 
 UPLOAD_FOLDER = './'
 
@@ -27,16 +27,25 @@ fs = gridfs.GridFS(db)
 car_collection = db['car_collection']
 analysis_collection = db['analysis_collection']
 
-api_key = 'd346846fd9msh443e0fcc39c9b89p162988jsn193f03486a46'
+api_key = os.environ.get('API_KEY')
 
 
 @api_bp.route('/api/addCar', methods=['POST', 'GET'])
 def add_car():
     report_id = request.form.get('report_id')
-    name = request.form.get('name')
-    make = request.form.get('make')
-    model = request.form.get('model')
-    year = request.form.get('year')
+    vin_number = request.form.get('vin_number')  # Get the VIN number from the form
+
+    if vin_number:  # If VIN number is provided
+        # Call your get_VIN_infoV2 function to get the vehicle info
+        vehicle_info = get_VIN_infoV2(vin_number)
+        make = vehicle_info.get('make', 'N/A')
+        model = vehicle_info.get('model', 'N/A')
+        year = vehicle_info.get('year', 'N/A')
+    else:  # If VIN number is not provided
+        name = request.form.get('name')
+        make = request.form.get('make')
+        model = request.form.get('model')
+        year = request.form.get('year')
 
     image_base64s = []
 
@@ -75,6 +84,7 @@ def add_car():
         if response.status_code == 200:
             # Redirect to the getreport endpoint
             get_report_response = getreport(result.inserted_id)
+            print("Get Report back : ",get_report_response)
             return get_report_response
         else:
             return jsonify(error="Failed to get report analysis.")
@@ -112,9 +122,38 @@ def get_VIN_info(VIN):
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         response_data = response.json()
-        return jsonify(response_data), 200
+        damage_response = get_damage_analysis(response_data)
+        if damage_response.status_code == 200:
+            return jsonify(response_data), 200
     else:
         return jsonify({'error': f'Failed to retrieve data: {response.status_code}'}), 500
+
+
+
+
+@api_bp.route('/api/get_VIN_infoV2', methods=['GET','POST'])
+def get_VIN_infoV2(vin_num):
+    url = f'https://auto.dev/api/vin/{vin_num}?apikey={api_key}'
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        response_data = response.json()
+        # Assuming that the keys for make, model, and year are 'make', 'model', and 'year' in the JSON response
+        vehicle_info = {
+            'make': response_data.get('make', 'N/A'),
+            'model': response_data.get('model', 'N/A'),
+            'year': response_data.get('year', 'N/A')
+        }
+        print("Vehicle Info : ",vehicle_info)
+        return vehicle_info
+    else:
+        return jsonify({'error': f'Failed to retrieve data: {response.status_code}'}), 500
+
+
+
+
 
 
 @api_bp.route('/api/getDamageAnalysis/<string:_id>')
@@ -286,9 +325,7 @@ def getreport(_id):
         }
     )
 
-    return jsonify({
-        'AI_estimated_cost': AI_estimated_cost,
-        'parts_toBeReplaced': parts_toBeReplaced,
-        'scratch_cost': scratch_cost,
-        'replacement_price': replacement_price,
-    }), 200
+    return {"data":{"AI Estimated Cost ":AI_estimated_cost,
+                    "Parts to be replaced":parts_toBeReplaced,
+                    "Scratches Cost":scratch_cost,
+                    "Replacement Price": replacement_price}}
