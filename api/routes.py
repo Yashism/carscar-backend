@@ -32,9 +32,12 @@ api_key = os.environ.get('API_KEY')
 
 @api_bp.route('/api/addCar', methods=['POST', 'GET'])
 def add_car():
+    print("Add Car Called")
+    print("open ai key", os.environ.get('OPENAI_API_KEY'))
     report_id = request.form.get('report_id')
     vin_number = request.form.get('vin_number')  # Get the VIN number from the form
-
+    print("VIN Number : ",vin_number)
+    
     if vin_number:  # If VIN number is provided
         # Call your get_VIN_infoV2 function to get the vehicle info
         vehicle_info = get_VIN_infoV2(vin_number)
@@ -46,7 +49,7 @@ def add_car():
         make = request.form.get('make')
         model = request.form.get('model')
         year = request.form.get('year')
-
+    
     image_base64s = []
 
     for img in request.files.getlist('images'):
@@ -80,14 +83,18 @@ def add_car():
     if result.acknowledged:
         # Directly call get_damage_analysis and pass the _id argument
         # return redirect(url_for('api_bp.getreport', _id=result.inserted_id))
-        response = get_damage_analysis(result.inserted_id)
-        if response.status_code == 200:
+        status, response_content = get_damage_analysis(result.inserted_id)
+
+        print("status : ",status)
+        print("response content : ",type(response_content))
+        if response_content == 200:
             # Redirect to the getreport endpoint
             get_report_response = getreport(result.inserted_id)
             print("Get Report back : ",get_report_response)
-            return [jsonify(get_report_response)]
+            return jsonify(get_report_response)
         else:
-            return [jsonify(error="Failed to get report analysis.")]
+            print("fucked in the data analysis")
+            return jsonify(error="Failed to get report analysis.")
     else:
         return jsonify(error="Failed to store car details.")
 
